@@ -2,7 +2,10 @@ module github.com/slidebolt/sb-media-sdk
 
 go 1.26.1
 
-require github.com/slidebolt/sb-messenger-sdk v1.0.8
+require (
+	github.com/slidebolt/sb-domain v1.0.19
+	github.com/slidebolt/sb-messenger-sdk v1.0.8
+)
 
 require (
 	github.com/antithesishq/antithesis-sdk-go v0.6.0-default-no-op // indirect
