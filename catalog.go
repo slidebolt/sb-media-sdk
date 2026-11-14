@@ -11,22 +11,7 @@ import (
 
 const catalogTimeout = 15 * time.Second
 
-type MediaItem struct {
-	Ref          domain.MediaItemRef  `json:"ref"`
-	Kind         string               `json:"kind"`
-	Title        string               `json:"title"`
-	SortTitle    string               `json:"sortTitle,omitempty"`
-	Summary      string               `json:"summary,omitempty"`
-	Year         int                  `json:"year,omitempty"`
-	DurationMS   int64                `json:"durationMS,omitempty"`
-	Parent       *domain.MediaItemRef `json:"parent,omitempty"`
-	ParentTitle  string               `json:"parentTitle,omitempty"`
-	Season       int                  `json:"season,omitempty"`
-	Episode      int                  `json:"episode,omitempty"`
-	Playable     bool                 `json:"playable,omitempty"`
-	HasThumbnail bool                 `json:"hasThumbnail,omitempty"`
-	HasArt       bool                 `json:"hasArt,omitempty"`
-}
+type MediaItem = domain.MediaItem
 
 type CatalogRequest struct {
 	ServerID  string `json:"serverID"`
@@ -81,10 +66,21 @@ type GuidePage struct {
 	Error      string             `json:"error,omitempty"`
 }
 
+type ResolveRequest struct {
+	Source domain.PlayableSource `json:"source"`
+}
+type ResolveReply struct {
+	URL    string `json:"url,omitempty"`
+	Kind   string `json:"kind,omitempty"`
+	Format string `json:"format,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
+
 type Provider interface {
 	Browse(CatalogRequest) CatalogPage
 	Artwork(ArtworkRequest) ArtworkReply
 	Guide(GuideRequest) GuidePage
+	Resolve(ResolveRequest) ResolveReply
 }
 
 func providerSubject(provider, operation string) string {
@@ -106,6 +102,11 @@ func (c *Client) Artwork(provider string, req ArtworkRequest) (ArtworkReply, err
 func (c *Client) Guide(provider string, req GuideRequest) (GuidePage, error) {
 	var reply GuidePage
 	err := c.providerRequest(providerSubject(provider, "guide"), req, &reply)
+	return reply, err
+}
+func (c *Client) Resolve(provider string, req ResolveRequest) (ResolveReply, error) {
+	var reply ResolveReply
+	err := c.providerRequest(providerSubject(provider, "resolve"), req, &reply)
 	return reply, err
 }
 
@@ -148,6 +149,13 @@ func ServeProvider(msg messenger.Messenger, id string, p Provider) ([]messenger.
 				return GuidePage{Error: "invalid request"}
 			}
 			return p.Guide(r)
+		}},
+		{"resolve", func(b []byte) any {
+			var r ResolveRequest
+			if json.Unmarshal(b, &r) != nil {
+				return ResolveReply{Error: "invalid request"}
+			}
+			return p.Resolve(r)
 		}},
 	}
 	var subs []messenger.Subscription
